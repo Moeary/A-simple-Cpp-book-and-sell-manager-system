@@ -5,6 +5,7 @@
 #include <ctime>
 #include <algorithm>
 #include <sstream>
+#include <cstdio>
 
 #include "book.hpp"
 #include "buyer.hpp"
@@ -12,64 +13,63 @@
 
 using namespace std;
 
-void showBook(const std::vector<book*>& books) {
-    std::cout << "Current books in the library: " << std::endl;
-    std::cout << "Book ID\tBook Name\tAuthor\tPublishing Company\tPrice" << std::endl;
+void showBook(const vector<book*>& books) {
+    cout << "Current books in the library: " << endl;
+    cout << "Book ID\tBook Name\tAuthor\tPublishing Company\tPrice" << endl;
     for (const auto& b : books) {
-        std::cout << b->getbook_ID() << "\t" << b->getbook_name() << "\t        " << b->getauthor() << "\t" << b->getpublishing() << "\t                " << b->getprice() << std::endl;
+        cout << b->getbook_ID() << "\t" << b->getbook_name() << "\t\t" << b->getauthor() << "\t" << b->getpublishing() << "\t\t\t" << b->getprice() << endl;
     }
 }
-void showBuyer(const std::vector<buyer*>& buyers) {
-    std::cout << "Current buyers in the library:" << std::endl;
-    std::cout << "Name\tBuyer ID\tAddress\tPay Amount" << std::endl;
-    std::cout << "Member:" << std::endl;
-    for (const auto& b : buyers) {
-        if (b->is_member() && !b->is_honoured()) {
-            member* m = dynamic_cast<member*>(b); //动态类型转换为对应的类
-            std::cout << m->getbuyname() << "\t" << m->getid() << "\t" << m->getaddress() << "\t" << m->getpay() << std::endl;
-        }
-    }
+void showBuyer(const vector<buyer*>& buyers) {
+    cout << "Current buyers in the library:" << endl;
+    cout << "Name\tBuyer ID\tAddress\tPay Amount\t type\t\t off?" << endl;
 
-    std::cout << "Honoured Guest:" << std::endl;
     for (const auto& b : buyers) {
-        if (b->is_honoured()) { //判断是否为贵宾
+        string type = b->get_type();
+        if (type == "member") {
+            member* m = dynamic_cast<member*>(b);
+            cout << m->getbuyname() << "\t" << m->getid() << "\t\t" << m->getaddress() << "\t\t" << m->getpay() << "\t"<<type<<"\t\t"<<m->getLeaguerGrade()<<endl;
+        } else if (type == "honoured_guest") {
             honoured_guest* h = dynamic_cast<honoured_guest*>(b);
-            std::cout << h->getbuyname() << "\t" << h->getid() << "\t" << h->getaddress() << "\t" << h->getpay() << std::endl;
-        }
-    }
-    std::cout << "layfolk:" << std::endl;
-    for (const auto& b : buyers) {
-        if (!b->is_member() && !b->is_honoured()) {
-            std::cout << b->getbuyname() << "\t" << b->getid() << "\t" << b->getaddress() << "\t" << b->getpay() << std::endl;
+            cout << h->getbuyname() << "\t" << h->getid() << "\t\t" << h->getaddress() << "\t" << h->getpay() << "\t"<<type<<"\t"<<h->get_discount_rate()<<endl;
+        } else if (type == "layfolk") {
+            cout << b->getbuyname() << "\t" << b->getid() << "\t\t" << b->getaddress() << "\t\t" << b->getpay() << "\t"<<type<<"\t\t"<<"no special off"<<endl;
         }
     }
 }
 
 
-void readBuyersFromFile(std::vector<buyer*>& buyers) {
-    std::ifstream buyerFile("buyer.dat");
+void readBuyersFromFile(vector<buyer*>& buyers) {
+    ifstream buyerFile("buyer.dat");
     buyers.clear();
     if (buyerFile.is_open()) {
-        std::string name, address;
+        string name, address;
         int buyerID, leaguerGrade;
-        double pay;
+        int type=-1,fun;
+        double pay,rate=1;
         // 读取buyer数据并创建buyer对象
-        while (buyers.size() < 100 && buyerFile >> name >> buyerID >> leaguerGrade >> address >> pay) {
-            if (leaguerGrade > 0) {
-                buyers.push_back(new member(name, buyerID, leaguerGrade, address, pay));
+        while (buyerFile >> name >> buyerID >> type >> address>> fun) {
+            if (type==0) {
+                fun=0;
+                buyers.push_back(new layfolk(name, buyerID, address,0));
             }
-            else if (leaguerGrade == 0) {
-                buyers.push_back(new layfolk(name, buyerID, address, pay));
+            else if (type == 1) {
+                leaguerGrade=fun;
+                buyers.push_back(new member(name, buyerID, leaguerGrade, address, 0));
+            }
+            else{
+                rate=fun;
+                buyers.push_back(new honoured_guest(name,buyerID,rate,address,0));
             }
         }
         buyerFile.close();
     }
     else {
-        std::cout << "Error opening buyer.dat file" << std::endl;
+        cout << "Error opening buyer.dat file" << endl;
         exit(1);
     }
 }
-bool bookExists(std::vector<book*>& books,string id) {
+bool bookExists(vector<book*>& books,string id) {
     for(const auto& b : books) {
         if(b->getbook_ID() == id) {
             return true;
@@ -78,7 +78,7 @@ bool bookExists(std::vector<book*>& books,string id) {
     return false;
 }
 
-bool buyerExists(std::vector<buyer*>& buyers,int id) {
+bool buyerExists(vector<buyer*>& buyers,int id) {
     for(const auto& b : buyers) {
         if(b->getid() == id) {
             return true;
@@ -88,8 +88,8 @@ bool buyerExists(std::vector<buyer*>& buyers,int id) {
 }
 
 
-void readBooksFromFile(std::vector<book*>& books) {
-    std::ifstream bookFile("book.dat");
+void readBooksFromFile(vector<book*>& books) {
+    ifstream bookFile("book.dat");
     books.clear();
     if (bookFile.is_open()) {
         string bookID, bookName, author, publishing;
@@ -101,22 +101,22 @@ void readBooksFromFile(std::vector<book*>& books) {
         bookFile.close();
     }
     else {
-        std::cout << "Error opening book.dat file" << std::endl;
+        cout << "Error opening book.dat file" << endl;
         exit(1);
     }
 }
 
 
 
-void addBook(std::vector<book*>& books) {
+void addBook(vector<book*>& books) {
     string bookID, bookName, author, publishing;
     double price;
 
     // 提示用户输入书籍信息
-    std::cout << "Enter book ID: ";
-    std::cin >> bookID;
+    cout << "Enter book ID: ";
+    cin >> bookID;
     if(bookExists(books, bookID)) {
-        std::cout << "Book ID already exists" << std::endl;
+        cout << "Book ID already exists" << endl;
         return;
     }
     cout << "Enter book name: ";
@@ -129,121 +129,120 @@ void addBook(std::vector<book*>& books) {
     cin >> price;
 
     // 提示书籍成功添加
-    std::cout << "Book added successfully!" << std::endl;
-    std::ofstream bookFile("book.dat", std::ios::app);
+    cout << "Book added successfully!" << endl;
+    ofstream bookFile("book.dat", ios::app);
     if (bookFile.is_open()) {
-        bookFile << bookID << " " << bookName << " " << author << " " << publishing << " " << price << std::endl;
+        bookFile << bookID << " " << bookName << " " << author << " " << publishing << " " << price << endl;
         bookFile.close();
-        std::cout << "Book saved to file!" << std::endl;
+        cout << "Book saved to file!" << endl;
     }
     else {
-        std::cout << "Error saving book to file!" << std::endl;
+        cout << "Error saving book to file!" << endl;
     }
 }
 
-void addBuyer(std::vector<buyer*>& buyers) {
+void addBuyer(vector<buyer*>& buyers) {
 
     int buyerType = -1; // 默认为贵宾
 
     do {
-        std::string name, address;
+        string name, address;
         int buyerID, leaguerGrade;
-        double pay;
+        double pay,rate;
+        int fun;
 
         // 提示用户输入买家信息
-        std::cout << "Enter buyer ID: ";
-        std::cin >> buyerID;
+        cout << "Enter buyer ID: ";
+        cin >> buyerID;
         if(buyerExists(buyers, buyerID)) {
-            std::cout << "Buyer ID already exists" << std::endl;
+            cout << "Buyer ID already exists" << endl;
             return;
         }
-        std::cout << "Enter buyer name: ";
-        std::cin >> name;
+        cout << "Enter buyer name: ";
+        cin >> name;
         
 
         // 根据用户输入的买家类型选择不同的添加方法
-        std::cout << "Enter buyer type (0 for layfolk, 1 for member, 2 for honoured guest): ";
-        std::cin >> buyerType;
+        cout << "Enter buyer type (0 for layfolk, 1 for member, 2 for honoured guest): ";
+        cin >> buyerType;
         switch (buyerType) {
         case 0: // 普通人
-            std::cout << "Enter address: ";
-            std::cin >> address;
-            std::cout << "Enter pay amount: ";
+            cout << "Enter address: ";
+            cin >> address;
+            fun=0;
             buyers.push_back(new layfolk(name, buyerID, address,0));
             break;
         case 1: // 会员
-            std::cout << "Enter leaguer grade: ";
-            std::cin >> leaguerGrade;
-            std::cout << "Enter address: ";
-            std::cin >> address;
-            std::cout << "Enter pay amount: ";
-            std::cin >> pay;
+            cout << "Enter leaguer grade: ";
+            cin >> leaguerGrade;
+            fun=leaguerGrade;
+            cout << "Enter address: ";
+            cin >> address;
             buyers.push_back(new member(name, buyerID, leaguerGrade, address,0));
             break;
         case 2: // 贵宾
-            std::cout << "Enter discount rate: ";
-            std::cin >> pay;
-            std::cout << "Enter address: ";
-            std::cin >> address;
-            std::cout << "Enter pay amount: ";
-            std::cin >> pay;
-            buyers.push_back(new honoured_guest(name, buyerID, pay, address,0));
+            cout << "Enter discount rate: ";
+            cin >> rate;
+            cout << "Enter address: ";
+            cin >> address;
+            fun=rate*100;
+            buyers.push_back(new honoured_guest(name, buyerID, rate, address,0));
             break;
         default: // 非法输入
-            std::cout << "Invalid buyer type!" << std::endl;
+            cout << "Invalid buyer type!" << endl;
             continue;
         }
 
         // 提示买家成功添加
-        std::cout << "Buyer added successfully!" << std::endl;
+        cout << "Buyer added successfully!" << endl;
 
         // 将新买家保存到文件
-        std::ofstream buyerFile("buyer.dat", std::ios::app);
+        ofstream buyerFile("buyer.dat", ios::app);
         if (buyerFile.is_open()) {
-            buyerFile << name << " " << buyerID << " " << buyerType << " " << address << " " << pay << std::endl;
+            buyerFile << name << " " << buyerID << " " << buyerType << " " << address << " " << 0 <<fun<<endl;
             buyerFile.close();
-            std::cout << "Buyer saved to file!" << std::endl;
+            cout << "Buyer saved to file!" << endl;
         }
         else {
-            std::cout << "Error saving buyer to file!" << std::endl;
+            cout << "Error saving buyer to file!" << endl;
         }
         
         // 继续提醒用户可以继续添加，或者输入负数退出添加
-        std::cout << "Enter any positive number to add another buyer, or any negative number to exit: ";
-        std::cin >> buyerType;
+        cout << "Enter any positive number to add another buyer, or any negative number to exit: ";
+        cin >> buyerType;
     } while (buyerType >= 0);
 }
 void saveOrderToFile(const order& o) {
-    std::ofstream ofs("order.dat", std::ios::app);
+    ofstream ofs("order.dat", ios::app);
     if (ofs) {
         ofs << o.getBuyerID() << " ";
         for (const auto& bookID : o.getBookIDs()) {
             ofs << bookID << ",";
         }
-        ofs << " " << o.getTime() << std::endl;
+        ofs << " " << o.getTime() << endl;
     }
 }
 
-std::vector<order> loadOrdersFromFile() {
-    std::vector<order> orders;
+vector<order> loadOrdersFromFile() {
+    vector<order> orders;
 
-    std::ifstream ifs("order.dat");
+    ifstream ifs("order.dat");
     if (ifs) {
-        std::string line;
-        while (std::getline(ifs, line)) {
-            std::istringstream iss(line);
-            std::string buyerID;
-            std::getline(iss, buyerID, ' ');
+        string line;
+        while (getline(ifs, line)) {
+            istringstream iss(line);
+            string buyerID;
+            getline(iss, buyerID, ' ');
 
-            std::vector<std::string> bookIDs;
-            std::string bookID;
-            std::getline(iss, bookID, ' ');
-            std::istringstream bookISS(bookID);
-            while (std::getline(bookISS, bookID, ',')) {
+            vector<string> bookIDs;
+            string bookID;
+            getline(iss, bookID, ' ');
+            istringstream bookISS(bookID);
+            while (getline(bookISS, bookID, ',')) {
                 bookIDs.push_back(bookID);
             }
 
-            std::time_t time;
+            time_t time;
             iss >> time;
 
             orders.emplace_back(buyerID, bookIDs, time);
@@ -253,62 +252,62 @@ std::vector<order> loadOrdersFromFile() {
     return orders;
 }
 
-void addOrder(std::vector<buyer*>& buyers, std::vector<book*>& books) {
+void addOrder(vector<buyer*>& buyers, vector<book*>& books) {
     int buyerID;
-    std::cout << "Enter buyer ID: ";
-    std::cin >> buyerID;
+    cout << "Enter buyer ID: ";
+    cin >> buyerID;
     if (!buyerExists(buyers, buyerID)) {
-        std::cout << "Invalid buyer ID!" << std::endl; //查找是否存在用户id 不存在就返回
+        cout << "Invalid buyer ID!" << endl; //查找是否存在用户id 不存在就返回
         return;
     }
 
-    std::vector<std::string> bookIDs;
+    vector<string> bookIDs;
     bool exit = false;
-    do {
-        std::string bookID;
-        std::cout << "Enter book ID (enter -1 to exit): ";
-        std::cin >> bookID;
-        if (bookID == "-1") {
-            exit = true;
+    
+    string bookID;
+    cout << "Enter book ID (enter -1 to exit): ";
+    cin >> bookID;
+    if (bookID == "-1") {
+        return; 
+    }
+    else{
+        /*迭代器查找,找到了push到bookID中去*/
+        auto it = find_if(books.begin(), books.end(),[&bookID](const auto& b) {return b->getbook_ID() == bookID; });
+        if (it == books.end()) {
+            cout << "Invalid book ID!" << endl;
         }
-        else{
-            /*迭代器查找,找到了push到bookID中去*/
-            auto it = std::find_if(books.begin(), books.end(),[&bookID](const auto& b) {return b->getbook_ID() == bookID; });
-            if (it == books.end()) {
-                std::cout << "Invalid book ID!" << std::endl;
-            }
-            else {
-                bookIDs.push_back(bookID);
-            }
+        else {
+            bookIDs.push_back(bookID);
         }
-    } while (!exit);
+    }
 
     if (bookIDs.empty()) {
-        std::cout << "No book added!" << std::endl;
+        cout << "No book added!" << endl;
         return;
     }
-    order o(std::to_string(buyerID), bookIDs);
+    order o(to_string(buyerID), bookIDs);
     saveOrderToFile(o);
-    std::cout << "Order added successfully!" << std::endl;
+    cout << "Order added successfully!" << endl;
 }
-void showorder(std::vector<order>& orders, std::vector<buyer*>& buyers, std::vector<book*>& books) {
+void showorder(vector<order>& orders, vector<buyer*>& buyers, vector<book*>& books) {
     int len = orders.size();
     for (int i = 0; i < len; i++) {
-        std::string buyerID = orders[i].getBuyerID();
-        std::vector<std::string> bookIDs = orders[i].getBookIDs();
+        string buyerID = orders[i].getBuyerID();
+        vector<string> bookIDs = orders[i].getBookIDs();
         
         // 输出买家信息
         for (auto& b : buyers) {
             if (to_string(b->getid()) == buyerID) {
-                std::cout << b->getbuyname() << " ";
-                if(b->is_honoured()&&!b->is_member()){
-                    std::cout << "贵宾有请 ";
+                cout << b->getbuyname() << " ";
+                string type = b->get_type();
+                if(type=="honoured_guest"){
+                    cout << "贵宾 ";
                 }
-                if(b->is_member()&&!b->is_honoured()){
-                    std::cout << "会员有请 ";
+                else if(type=="member"){
+                    cout << "会员 ";
                 }
                 else{
-                    std::cout << "乡巴佬有请 ";
+                    cout << "普通人";
                 }
                 break;
             }
@@ -319,16 +318,91 @@ void showorder(std::vector<order>& orders, std::vector<buyer*>& buyers, std::vec
         for (auto& book_id : bookIDs) {
             for (auto& b : books) {
                 if (b->getbook_ID() == book_id) {
-                    std::cout << "书名" << b->getbook_name() << " 作者:" << b->getauthor() <<" 价格:"<<b->getprice()<<endl;
+                    cout << "书名" << b->getbook_name() << " 作者:" << b->getauthor() <<" 价格:"<<b->getprice()<<endl;
                     break;
                 }
             }
         }
-        std::time_t time = orders[i].getTime();
-        std::tm* time_info = std::localtime(&time);
-        std::cout << "购买时间: " << std::asctime(time_info) << std::endl;
+        time_t time = orders[i].getTime();
+        tm* time_info = localtime(&time);
+        cout << "购买时间: " << asctime(time_info) << endl;
     }
     cout<<endl;
+}
+void select(vector<order>& orders, vector<buyer*>& buyers, vector<book*>& books){
+    int len = orders.size(),buyer_id =-1;
+    bool flag = false;
+    cin.clear();
+    cout<<"Please print your BuyerId"<<endl;
+    cin>>buyer_id;
+    for (const auto& order : orders) {
+        if (order.getBuyerID() == to_string(buyer_id)) {
+            for (const auto& b : buyers) {
+                if (order.getBuyerID() == to_string(b->getid())) {
+                    cout << "Buyer name: " << b->getbuyname() << endl;
+                    flag = true;
+                    break;
+                }
+            }
+            if (flag) {
+                break;
+            }
+        }
+    }
+
+    if (!flag) {
+        cout << "Invalid BuyerId" << endl;
+        return;
+    }
+    if(flag == false){
+        cout<<"BuyerID is not in order table"<<endl;
+        return;
+    }
+    double sum = 0;
+    for (const auto& order : orders) { //嵌套循环查书籍名
+        if (order.getBuyerID() == to_string(buyer_id)) {
+            for (const auto& book_id : order.getBookIDs()) {
+                for (const auto& book : books) {
+                    if (book->getbook_ID() == book_id) {
+                        sum += book->getprice();
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    for (int i = 0; i < len; i++) {
+        string buyerID = orders[i].getBuyerID();
+        for (auto& b : buyers) {
+            if (to_string(b->getid()) == buyerID and buyerID == to_string(buyer_id)) {
+                string type="-1";
+                type=b->get_type();
+                cout << "应付: " << sum << endl;
+                if (type == "member") {
+                    member* m = dynamic_cast<member*>(b);
+                    m->setpay(sum);
+                    cout <<"事会员"<<endl<< "实付: "<<b->getpay()<<endl;
+                }
+                else if (type == "honoured_guest") {
+                    honoured_guest* h = dynamic_cast<honoured_guest*>(b);
+                    h->setpay(sum);
+                    cout <<"事贵宾"<<endl<< "实付: "<<h->getpay()<<endl;
+                }
+                else if( type == "layfolk"){
+                     layfolk* l = dynamic_cast<layfolk*>(b);
+                     l->setpay(sum);
+                     cout <<"事普通人"<< "实付: "<<l->getpay()<<endl;
+                }
+                else{
+                    cout<<"ERROR"<<endl;
+                }
+                return;
+            }
+        }
+    }
+    // Output the total price
+    
 }
 /*
  * 
@@ -357,20 +431,23 @@ void showorder(std::vector<order>& orders, std::vector<buyer*>& buyers, std::vec
  */
 
 int main(int argc, char** argv){
-    std::vector<book*> books;
-    std::vector<buyer*> buyers;
-    std::vector<order> orders;
-
+    vector<book*> books;
+    vector<buyer*> buyers;
+    vector<order> orders;
+    orders=loadOrdersFromFile();
     int choice;
     while (true) {
-        cout << "Choose an option: " << std::endl;
-        cout << "1. Read books from file" << std::endl;
-        cout << "2. Read buyers from file" << std::endl;
-        cout << "3. Add a book" << std::endl;
-        cout << "4. Add a buyer" << std::endl;
-        cout << "5. Add a order" << std::endl;
-        cout << "6. show orders" << std::endl;
-        cout << "0. Exit" << std::endl;
+
+        std::cout << "\x1B[2J\x1B[H"; //逃逸序列清屏
+        cout << "Choose an option: " << endl;
+        cout << "1. Read books from file" << endl;
+        cout << "2. Read buyers from file" << endl;
+        cout << "3. Add a book" << endl;
+        cout << "4. Add a buyer" << endl;
+        cout << "5. Add a order" << endl;
+        cout << "6. Show orders" << endl;
+        cout << "7. Select count(book money) from order,buyer,book group by order.buyerID having order.bookID=book.bookID and order.buyerID='X'" << endl;
+        cout << "0. Exit" << endl;
         cin >> choice;
 
         // 清除输入缓冲区
@@ -400,17 +477,20 @@ int main(int argc, char** argv){
                 addOrder(buyers,books);
                 break;
             case 6:
-                orders=loadOrdersFromFile();
                 readBooksFromFile(books);
                 readBuyersFromFile(buyers);//把文件数据都读到vector中去
                 showorder(orders,buyers,books);
                 break;
+            case 7:
+                readBooksFromFile(books);
+                readBuyersFromFile(buyers);
+                select(orders,buyers,books);
             case 0:
                 flag = 1;
-                std::cout << "Exiting..." << std::endl;
+                cout << "Exiting..." << endl;
                 break;
             default:
-                std::cout << "Invalid choice, Please choose again" << std::endl;
+                cout << "Invalid choice, Please choose again" << endl;
                 break;
             if (flag == 1) {
                 break;
