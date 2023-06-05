@@ -1,81 +1,115 @@
-#include"buyer.hpp"
-#include"book.hpp"
-class order{
-    private:
-        static int ordercount;
-        int orderID;
-        int buyerID;
-        int listcount;
-        string orderlist[20];
-    public:
-        order(){
-            buyerID=0;
-            ordercount++;
-            orderID=ordercount;
-            listcount=0;
-        }
-        void setbuyerID(int b_id){
-            buyerID=b_id;
-        }
-        void buy_one_book(string b_id){
-            orderlist[listcount]=b_id;
-            listcount++;
-        }
-        void display();
-};
-void order::display(){
-    int i;
-    cout<<"Order Information\n\n Order ID:"<<orderID<<endl;
-    cout<<"Buyer ID:"<<buyerID<<endl;
-    cout<<"Book List:";
-    for(int i=0; i<listcount;++i){
-        cout<<orderlist[i]<<endl;
-    }
-}
-int order::ordercount=0;
-int main(int  argc,char  *argv[]){
-    int i=0,j=0;
-    int buyerid,flag;
-    book *c[2];
-    layfolk b1("Ling Xiaocha",1,"Beijing",0);
-    honoured_guest b2("Wang Yaoyao",2,.6,"Shanghai",0);
-    member b3("Zhao Hongyan",3,5,"Guangzhou",0);
-    order o1[20];
-    buyer *b[3]={&b1,&b2,&b3};
-    book c1("","C++ Programing","Tang Haoqiang","Tsung University",25);
-    book c2("A2","Data structure","Xu Tianfeng","Peking University",20);
-    c[0]=&c1;c[1]=&c2;
-    cout<<"Buyer Information:"<<endl<<endl;
-    for(i=0;i<3;++i){
-        b[i]->display();
-    }
-    for(i=0;i<2;++i){
-        c[i]->display();
-    }
-    while(j<2){
-        cout<<"Please write down BuyerID"<<endl;
-        cin>>buyerid;
-        flag=0;
-        for(i=0;i<3;++i){
-            if(b[i]->getid()==buyerid){
-                flag=1;
+#include "function.hpp"
+
+/*
+ * 
+ * 　　┏┓　　　┏┓+ +
+ * 　┏┛┻━━━┛┻┓ + +
+ * 　┃　　　　　　　┃ 　
+ * 　┃　　　━　　　┃ ++ + + +
+ *  ████━████ ┃+
+ * 　┃　　　　　　　┃ +
+ * 　┃　　　┻　　　┃
+ * 　┃　　　　　　　┃ + +
+ * 　┗━┓　　　┏━┛
+ * 　　　┃　　　┃　　　　　　　　　　　
+ * 　　　┃　　　┃ + + + +
+ * 　　　┃　　　┃
+ * 　　　┃　　　┃ +  神兽保佑
+ * 　　　┃　　　┃    代码无bug　　
+ * 　　　┃　　　┃　　+　　　　　　　　　
+ * 　　　┃　 　　┗━━━┓ + +
+ * 　　　┃ 　　　　　　　┣┓
+ * 　　　┃ 　　　　　　　┏┛
+ * 　　　┗┓┓┏━┳┓┏┛ + + + +
+ * 　　　　┃┫┫　┃┫┫
+ * 　　　　┗┻┛　┗┻┛+ + + +
+ * 
+ */
+
+int main(int argc, char** argv){
+    vector<book*> books;
+    vector<buyer*> buyers;
+    vector<order> orders;
+    Set_Font();
+    orders=loadOrdersFromFile();
+    int choice=-1;
+    while (true) {
+        std::cout << "\x1B[2J\x1B[H"; 
+        //逃逸序列清屏
+        cout << "Choose an option: " << endl;
+        cout << "1. Read books from file" << endl;
+        cout << "2. Read buyers from file" << endl;
+        cout << "3. Add a book" << endl;
+        cout << "4. Add a buyer" << endl;
+        cout << "5. Add a order" << endl;
+        cout << "6. Show orders" << endl;
+        cout << "7. Select count(book money) from order,buyer,book group by order.buyerID having order.bookID=book.bookID and order.buyerID='X'" << endl;
+        cout << "0. Exit" << endl;
+        cin >> choice;
+
+        // 清除输入缓冲区
+        cin.clear();
+        
+        int flag = 0;
+        switch (choice) {
+            case 1:
+                readBooksFromFile(books);
+                showBook(books);
+                break;
+            case 2:
+                readBuyersFromFile(buyers);
+                showBuyer(buyers);
+                break;
+            case 3:
+                readBooksFromFile(books);
+                addBook(books);
+                press_any_key_to_continue();
+                break;
+            case 4:
+                readBuyersFromFile(buyers);
+                addBuyer(buyers);
+                press_any_key_to_continue();
+                break;
+            case 5:
+                readBooksFromFile(books);
+                readBuyersFromFile(buyers);
+                addOrder(buyers,books);
+                press_any_key_to_continue();
+                break;
+            case 6:
+                readBooksFromFile(books);
+                readBuyersFromFile(buyers);//把文件数据都读到vector中去
+                showorder(orders,buyers,books);
+                press_any_key_to_continue();
+                break;
+            case 7:
+                readBooksFromFile(books);
+                readBuyersFromFile(buyers);
+                select(orders,buyers,books);
+                press_any_key_to_continue();
+            case 0:
+                flag = 1;
+                cout << "Exiting..." << endl;
+                break;
+            default:
+                cout << "Invalid choice, Please choose again" << endl;
+                press_any_key_to_continue();
+                break;
+            
+            if (flag == 1) {
                 break;
             }
-            if(!flag){
-                cout<<"BuyerID is invaild";
-                break;
-            }
-            else{
-                b[i]->setpay(c[0]->getprice());
-                b[i]->setpay(c[1]->getprice());
-                cout<<endl<<"Buyer need to pay:"<<b[i]->getpay()<<endl<<endl;
-                o1[j].setbuyerID(b[i]->getid());
-                o1[j].buy_one_book(c[0]->getbook_ID());
-                o1[j].buy_one_book(c[1]->getbook_ID());
-                o1[j].display();
-            }
+            
         }
-        ++j;
+    }
+
+    // 其他逻辑...
+    // 清理资源，释放内存
+    for (book* b : books) {
+        delete b;
+    }
+    for (buyer* b : buyers) {
+        delete b;
     }
     return 0;
 }
